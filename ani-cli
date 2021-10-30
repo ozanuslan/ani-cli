@@ -2,7 +2,7 @@
 
 # dependencies: grep sed curl video_player
 # video_player ( needs to be able to play urls )
-player_fn="mpv"
+player_fn="vlc"
 
 prog="ani-cli"
 logfile="${XDG_CACHE_HOME:-$HOME/.cache}/ani-hsts"
@@ -247,8 +247,18 @@ open_episode () {
 		sed -E "
 			s/^${selection_id}\t[0-9]+/${selection_id}\t$((episode+1))/
 		" "$logfile" > "${logfile}.new" && mv "${logfile}.new" "$logfile"
-
-		setsid -f $player_fn --http-header-fields="Referer: $embedded_video_url" "$video_url" >/dev/null 2>&1
+		
+		case $player_fn in
+			vlc)
+				setsid -f $player_fn --http-referrer="$embedded_video_url" "$video_url" --http-user-agent="Mozilla/5.0" --adaptive-use-access  >/dev/null 2>&1
+				;;
+			mpv)
+				setsid -f $player_fn --http-header-fields="Referer: $embedded_video_url" "$video_url" >/dev/null 2>&1
+				;;
+			*)
+				printf "${c_red}Selected player \"$player_fn\" is not recognized. Cannot open video.${c_reset}\n"
+		esac 
+		
 	else
 		printf "Downloading episode $episode ...\n"
 		printf "%s\n" "$video_url"
